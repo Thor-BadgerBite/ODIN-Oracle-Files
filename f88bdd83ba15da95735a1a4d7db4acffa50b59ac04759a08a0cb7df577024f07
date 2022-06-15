@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+import requests
+import sys
+
+URL = "https://api-osmosis.imperator.co/pairs/v1/summary"
+TWAP_URL = "https://api-osmosis.imperator.co/pairs/v1/historical/{pool_id}/chart?" \
+           "asset_in={asset_in}&asset_out={asset_out}&range={range}d&asset_type=symbol"
+HEADERS = {"Content-Type": "application/json"}
+
+
+def main(asset_in, asset_out, range):
+    r = requests.get(URL, headers=HEADERS)
+    r.raise_for_status()
+    pool_id = -1
+
+    pxs = r.json()
+
+    res = []
+    for i in pxs['data']:
+        if (i['base_symbol'] == asset_in and i['quote_symbol'] == asset_out) or \
+                (i['base_symbol'] == asset_out and i['quote_symbol'] == asset_in):
+            pool_id = i['pool_id']
+
+    if pool_id == -1:
+        raise Exception()
+
+    url = TWAP_URL.format(pool_id=pool_id, asset_in=asset_in, asset_out=asset_out, range=range)
+    r = requests.get(url, headers=HEADERS)
+    pxs = r.json()
+
+    avg = [(i['close'] + i['open'] + i['low'] + i['high']) / 4 for i in pxs]
+
+    twap_res = sum(avg) / len(avg)
+
+    return twap_res
+
+
+if __name__ == "__main__":
+    try:
+        print(main(sys.argv[1], sys.argv[2], sys.argv[3]))
+    except Exception as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)

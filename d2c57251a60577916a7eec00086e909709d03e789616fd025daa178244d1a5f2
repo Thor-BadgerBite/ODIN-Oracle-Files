@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+import requests
+import sys
+
+URL = "https://api-osmosis.imperator.co/pairs/v1/summary"
+HEADERS = {"Content-Type": "application/json"}
+
+
+def main(base_symbol, quote_symbol):
+    r = requests.get(URL, headers=HEADERS)
+    r.raise_for_status()
+
+    pxs = r.json()
+
+    res = []
+    for i in pxs['data']:
+        if i['base_symbol'] == base_symbol and i['quote_symbol'] == quote_symbol:
+            res.append("{} {} {} {}".format(i['pool_id'], i['price'], i['liquidity'], i['liquidity_atom']))
+
+    return ";".join(res)
+
+
+if __name__ == "__main__":
+    try:
+        print(main(sys.argv[1], sys.argv[2]))
+    except Exception as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
